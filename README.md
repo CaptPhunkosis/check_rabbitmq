@@ -16,3 +16,8 @@ Here's an example from our nrpe.cfg
 command[rab_connection_count]=/cloud/src/server/nagios/nrpe64/libexec/check_rabbitmq -a connection_count -C 100 -W 80
 command[rab_queries_count]=/cloud/src/server/nagios/nrpe64/libexec/check_rabbitmq -a queues_count -C 100 -W 80
 </code></pre>
+
+## License
+Copyright (c) Nick Thuesen
+
+* [GPLv3](http://www.gnu.org/copyleft/gpl.html)
