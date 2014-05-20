@@ -75,7 +75,7 @@ def check_queues_count(critical=1000, warning=1000):
 
 
 
-USAGE = """Usage: ./check_rabbitmq -a [action] -c [critical] -w [warning]
+USAGE = """Usage: ./check_rabbitmq -a [action] -C [critical] -W [warning]
            Actions:
            - connection_count
              checks the number of connection in rabbitmq's list_connections
