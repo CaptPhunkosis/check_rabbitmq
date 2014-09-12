@@ -60,16 +60,24 @@ def check_queues_count(critical=1000, warning=1000):
     TODO: Possibly break this out so test can be done on individual queues.
     """
     try:
+        critical_q = []
+        warning_q = []
+        ok_q = []
         results = RabbitCmdWrapper.list_queues()
         for queue in results:
             count = int(queue[1])
             if count >= critical:
-                print "CRITICAL - Queue %s count %s" % (queue[0], count)
-                return
+                critical_q.append("%s: %s" % (queue[0], count))
             elif count >= warning:
-                print "WARNING - Queue %s count %s" % (queue[0], count)
-                return
-        print "OK - Queues %s" % str(["%s : %s" % (q[0], q[1]) for q in results])
+                warning_q.append("%s: %s" % (queue[0], count))
+            else:
+                ok_q.append("%s: %s" % (queue[0], count))
+        if critical_q:
+            print "CRITICAL - %s" % ", ".join(critical_q)
+        elif warning_q:
+            print "WARNING - %s" % ", ".join(warning_q)
+        else:
+            print "OK - %s" % ", ".join(ok_q)
     except Exception, err:
         print "CRITICAL - %s" % err
 
