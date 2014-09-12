@@ -63,11 +63,12 @@ def check_queues_count(critical=1000, warning=1000):
     try:
         results = RabbitCmdWrapper.list_queues()
         for queue in results:
-            if queue[1] >= critical:
-                print "CRITICAL - Queue %s count %s" % (queue[0], queue[1])
+            count = int(queue[1])
+            if count >= critical:
+                print "CRITICAL - Queue %s count %s" % (queue[0], count)
                 return
-            elif queue[1] >= warning:
-                print "WARNING - Queue %s count %s" % (queue[0], queue[1])
+            elif count >= warning:
+                print "WARNING - Queue %s count %s" % (queue[0], count)
                 return
         print "OK - Queues %s" % str([ "%s : %s" % (q[0],q[1]) for q in results])
     except Exception, err:
@@ -87,9 +88,9 @@ if __name__ == "__main__":
     parser.add_option("-a", "--action", dest="action",
             help="Action to Check")
     parser.add_option("-C", "--critical", dest="critical",
-            help="Critical Threshold")
+            type="int", help="Critical Threshold")
     parser.add_option("-W", "--warning", dest="warning",
-            help="Warning Threshold")
+            type="int", help="Warning Threshold")
     (options, args) = parser.parse_args()
 
     if options.action == "connection_count":
