@@ -38,8 +38,6 @@ class RabbitCmdWrapper(object):
         return return_data
 
 
-
-
 def check_connection_count(critical=0, warning=0):
     """Checks to make sure the numbers of connections are within parameters."""
     try:
@@ -55,25 +53,37 @@ def check_connection_count(critical=0, warning=0):
     except Exception, err:
         print "CRITICAL - %s" % err
 
+
 def check_queues_count(critical=1000, warning=1000):
     """
     A blanket check to make sure all queues are within count parameters.
     TODO: Possibly break this out so test can be done on individual queues.
     """
     try:
+        critical_q = []
+        warning_q = []
+        ok_q = []
         results = RabbitCmdWrapper.list_queues()
         for queue in results:
             count = int(queue[1])
             if count >= critical:
-                print "CRITICAL - Queue %s count %s" % (queue[0], count)
-                return
+                critical_q.append("%s: %s" % (queue[0], count))
             elif count >= warning:
-                print "WARNING - Queue %s count %s" % (queue[0], count)
-                return
-        print "OK - Queues %s" % str([ "%s : %s" % (q[0],q[1]) for q in results])
+                warning_q.append("%s: %s" % (queue[0], count))
+            else:
+                ok_q.append("%s: %s" % (queue[0], count))
+        if critical_q:
+            print "CRITICAL - %s" % ", ".join(critical_q)
+            sys.exit(2)
+        elif warning_q:
+            print "WARNING - %s" % ", ".join(warning_q)
+            sys.exit(1)
+        else:
+            print "OK - %s" % ", ".join(ok_q)
+            sys.exit(0)
     except Exception, err:
         print "CRITICAL - %s" % err
-
+        sys.exit(2)
 
 
 USAGE = """Usage: ./check_rabbitmq -a [action] -C [critical] -W [warning]
@@ -86,11 +96,11 @@ USAGE = """Usage: ./check_rabbitmq -a [action] -C [critical] -W [warning]
 if __name__ == "__main__":
     parser = OptionParser(USAGE)
     parser.add_option("-a", "--action", dest="action",
-            help="Action to Check")
+                      help="Action to Check")
     parser.add_option("-C", "--critical", dest="critical",
-            type="int", help="Critical Threshold")
+                      type="int", help="Critical Threshold")
     parser.add_option("-W", "--warning", dest="warning",
-            type="int", help="Warning Threshold")
+                      type="int", help="Warning Threshold")
     (options, args) = parser.parse_args()
 
     if options.action == "connection_count":
