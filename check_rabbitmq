@@ -30,8 +30,8 @@ class RabbitCmdWrapper(object):
     def _parse_list_results(cls, result_string):
         results = result_string.strip().split('\n')
         #remove text fluff
-        results.remove(results[-1])
-        results.remove(results[0])
+        if "Listing connections ..." in results: results.remove("Listing connections ...")
+        if "Listing queues ..." in results: results.remove("Listing queues ...")
         return_data = []
         for row in results:
             return_data.append(row.split('\t'))
