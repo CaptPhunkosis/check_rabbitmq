@@ -27,6 +27,13 @@ class RabbitCmdWrapper(object):
         return results
 
     @classmethod
+    def status(cls):
+        args = shlex.split('sudo rabbitmqctl status')
+        cmd_result = subprocess.check_output(args).strip()
+        results = cls._parse_list_results(cmd_result)
+        return results
+
+    @classmethod
     def _parse_list_results(cls, result_string):
         results = result_string.strip().split('\n')
         #remove text fluff
@@ -85,13 +92,34 @@ def check_queues_count(critical=1000, warning=1000):
         print "CRITICAL - %s" % err
         sys.exit(2)
 
+def check_mem_usage(critical=75, warning=50):
+    """Check to make sure the RAM usage of rabbitmq process does not exceed 50%% of its max"""
+    try:
+        results = RabbitCmdWrapper.status()
+        memory_used  = float(filter(str.isdigit, results[20][0]))
+        memory_limit = float(filter(str.isdigit, results[40][0]))
+        percent_usage = int(memory_used/memory_limit * 100)
+        if percent_usage > critical:
+            print "CRITICAL - RABBITMQ RAM USAGE at %s%% of max" % percent_usage
+            sys.exit(2)
+        elif percent_usage > warning:
+            print "WARNING - RABBITMQ RAM USAGE at %s%% of max" % percent_usage
+            sys.exit(1)
+        else:
+            print "OK - RABBITMQ RAM USAGE OK at %s%% of max" % percent_usage
+            sys.exit(0)
+    except Exception, err:
+        print "Critical - %s" % err
+        sys.exit(2)
 
 USAGE = """Usage: ./check_rabbitmq -a [action] -C [critical] -W [warning]
            Actions:
            - connection_count
              checks the number of connection in rabbitmq's list_connections
            - queues_count
-             checks the count in each of the queues in rabbitmq's list_queues"""
+             checks the count in each of the queues in rabbitmq's list_queues
+           - mem_usage
+             checks to ensure mem usage of rabbitmq process does not exceed 50%"""
 
 if __name__ == "__main__":
     parser = OptionParser(USAGE)
@@ -107,6 +135,8 @@ if __name__ == "__main__":
         check_connection_count(options.critical, options.warning)
     elif options.action == "queues_count":
         check_queues_count(options.critical, options.warning)
+    elif options.action == "mem_usage":
+        check_mem_usage(options.critical, options.warning)
     else:
         print "Invalid action: %s" % options.action
         print USAGE
