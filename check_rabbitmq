@@ -96,9 +96,17 @@ def check_mem_usage(critical=75, warning=50):
     """Check to make sure the RAM usage of rabbitmq process does not exceed 50%% of its max"""
     try:
         results = RabbitCmdWrapper.status()
-        memory_used  = float(filter(str.isdigit, results[20][0]))
-        memory_limit = float(filter(str.isdigit, results[40][0]))
+
+        for idx,val in enumerate(results):
+          if "memory," in str(val):
+              mem_used_raw = str(results[idx + 1])
+          if "vm_memory_limit" in str(val):
+              mem_limit_raw = str(val)
+
+        memory_used = float(filter(str.isdigit, mem_used_raw))
+        memory_limit = float(filter(str.isdigit, mem_limit_raw))
         percent_usage = int(memory_used/memory_limit * 100)
+
         if percent_usage > critical:
             print "CRITICAL - RABBITMQ RAM USAGE at %s%% of max" % percent_usage
             sys.exit(2)
