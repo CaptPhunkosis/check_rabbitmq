@@ -1,14 +1,14 @@
 #!/usr/bin/env python2
 from optparse import OptionParser
-import shlex
 import subprocess
 import sys
+import requests
+import json
 
 
 class RabbitCmdWrapper(object):
     """So basically this just runs rabbitmqctl commands and returns parsed output.
        Typically this means you need root privs for this to work.
-
        Made this it's own class so it could be used in other monitoring tools
        if desired."""
 
@@ -120,6 +120,52 @@ def check_mem_usage(critical=75, warning=50):
         print "Critical - %s" % err
         sys.exit(2)
 
+def check_aliveness(username, password, timeout):
+      """Declares a test queue, then publishes and consumes a message. Intended for use by monitoring tools. If everything is working correctly, will return HTTP status 200 with body"""
+      try:
+          r = requests.get("http://localhost:15672/api/aliveness-test/%2F", auth=(username, password), timeout=timeout)
+      except requests.exceptions.RequestException as e: # Throw error if rabbitmq is down
+        print "Critical - %s" % e
+        sys.exit(2)
+      if r.status_code == 200:
+          print "OK - RABBITMQ Aliveness Test Returns: %s" % r
+          sys.exit(0)
+      elif r.status_code != 200:
+          print "CRITICAL - RabbitMQ Error: %s" % r.content
+          sys.exit(2)
+      else:
+          print "UNKNOWN - RABBITMQ Aliveness Test"
+          sys.ext(1)
+
+def check_cluster(username, password, timeout, cluster):
+    """Checks the health of a cluster, if a node is not running mark as offline  """
+    try:
+        url = "http://%s:15672/api/nodes" % cluster
+        r = requests.get(url, auth=(username, password), timeout=timeout)
+    except requests.exceptions.RequestException as e: # Throw error if no response
+        print "Critical - %s" % e
+        sys.exit(2)
+    text = r.text
+    nodes = json.loads(text)
+
+    running_nodes = []
+    failed_nodes = []
+    for node in nodes:
+        if not node['running']:
+            failed_nodes.append(node['name'])
+        if node['running']:
+            running_nodes.append(node['name'])
+    if len(failed_nodes) == 1:
+       print "WARNING: RabbitMQ cluster is degraged: Not running %s" % failed_nodes[0]
+       sys.exit(1)
+    elif len(failed_nodes) >= 2:
+       print "CRITICAL: RabbitMQ cluster is critical: Not running %s" % failed_nodes
+       sys.exit(2)
+    else:
+       print "OK: RabbitMQ cluster members: %s" % (" ".join(running_nodes))
+       sys.exit(0)
+
+
 USAGE = """Usage: ./check_rabbitmq -a [action] -C [critical] -W [warning]
            Actions:
            - connection_count
@@ -127,7 +173,9 @@ USAGE = """Usage: ./check_rabbitmq -a [action] -C [critical] -W [warning]
            - queues_count
              checks the count in each of the queues in rabbitmq's list_queues
            - mem_usage
-             checks to ensure mem usage of rabbitmq process does not exceed 50%"""
+             checks to ensure mem usage of rabbitmq process does not exceed 50%
+           - aliveness
+             Use the /api/aliveness-test API to send/receive a message. (requires -u username -p password args)"""
 
 if __name__ == "__main__":
     parser = OptionParser(USAGE)
@@ -137,6 +185,14 @@ if __name__ == "__main__":
                       type="int", help="Critical Threshold")
     parser.add_option("-W", "--warning", dest="warning",
                       type="int", help="Warning Threshold")
+    parser.add_option("-u", "--username", dest="username", default="guest",
+                      type="string", help="RabbitMQ username, Default guest")
+    parser.add_option("-p", "--password", dest="password", default="guest",
+                      type="string", help="RabbitMQ password, Default guest")
+    parser.add_option("-t", "--timeout", dest="timeout", default=1,
+                      type="int", help="Request Timeout, defaults to 1 second")
+    parser.add_option("-c", "--cluster", dest="cluster", default="localhost",
+                      type="string", help="Cluster IP/DNS name, defaults to localhost")
     (options, args) = parser.parse_args()
 
     if options.action == "connection_count":
@@ -145,6 +201,10 @@ if __name__ == "__main__":
         check_queues_count(options.critical, options.warning)
     elif options.action == "mem_usage":
         check_mem_usage(options.critical, options.warning)
+    elif options.action == "aliveness":
+        check_aliveness(options.username, options.password, options.timeout)
+    elif options.action == "cluster_status":
+        check_cluster(options.username, options.password, options.timeout, options.cluster)
     else:
         print "Invalid action: %s" % options.action
         print USAGE
