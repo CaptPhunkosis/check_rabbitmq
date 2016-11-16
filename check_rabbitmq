@@ -176,7 +176,9 @@ USAGE = """Usage: ./check_rabbitmq -a [action] -C [critical] -W [warning]
            - mem_usage
              checks to ensure mem usage of rabbitmq process does not exceed 50%
            - aliveness
-             Use the /api/aliveness-test API to send/receive a message. (requires -u username -p password args)"""
+             Use the /api/aliveness-test API to send/receive a message. (requires -u username -p password args)
+           - cluster_status
+             Parse /api/nodes to check the cluster status. (requires -u username -p password"""
 
 if __name__ == "__main__":
     parser = OptionParser(USAGE)
