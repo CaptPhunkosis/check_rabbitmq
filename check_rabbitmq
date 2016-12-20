@@ -70,7 +70,6 @@ def check_queues_count(critical=1000, warning=1000):
     try:
         critical_q = []
         warning_q = []
-        ok_q = []
         results = RabbitCmdWrapper.list_queues()
         for queue in results:
             count = int(queue[1])
@@ -78,8 +77,6 @@ def check_queues_count(critical=1000, warning=1000):
                 critical_q.append("%s: %s" % (queue[0], count))
             elif count >= warning:
                 warning_q.append("%s: %s" % (queue[0], count))
-            else:
-                ok_q.append("%s: %s" % (queue[0], count))
         if critical_q:
             print "CRITICAL - %s" % ", ".join(critical_q)
             sys.exit(2)
@@ -87,7 +84,7 @@ def check_queues_count(critical=1000, warning=1000):
             print "WARNING - %s" % ", ".join(warning_q)
             sys.exit(1)
         else:
-            print "OK - %s" % ", ".join(ok_q)
+            print "OK - NO QUEUES EXCEED THRESHOLDS"
             sys.exit(0)
     except Exception, err:
         print "CRITICAL - %s" % err
