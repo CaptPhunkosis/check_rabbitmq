@@ -5,6 +5,7 @@ import subprocess
 import sys
 import requests
 import json
+import re
 
 if "check_output" not in dir( subprocess ): # duck punch it in!
   def f(*popenargs, **kwargs):
@@ -110,26 +111,26 @@ def check_mem_usage(critical=75, warning=50):
     """Check to make sure the RAM usage of rabbitmq process does not exceed 50%% of its max"""
     try:
         results = RabbitCmdWrapper.status()
+        for line in results:
+            rss = re.search(r'rss,([0-9]+)', str(line))
+            vml = re.search(r'vm_memory_limit,([0-9]+)', str(line))
+            if rss:
+                memory_used = int(rss.groups()[0]) / 1024
+            if vml:
+                memory_limit = int(vml.groups()[0]) / 1024
 
-        for idx,val in enumerate(results):
-          if "memory," in str(val):
-              mem_used_raw = str(results[idx + 1])
-          if "vm_memory_limit" in str(val):
-              mem_limit_raw = str(val)
-
-        memory_used = float(filter(str.isdigit, mem_used_raw))
-        memory_limit = float(filter(str.isdigit, mem_limit_raw))
-        percent_usage = int(memory_used/memory_limit * 100)
+        percent_usage = int(100 * memory_used / memory_limit)
 
         if percent_usage > critical:
-            print "CRITICAL - RABBITMQ RAM USAGE at %s%% of max" % percent_usage
+            print "CRITICAL - RABBITMQ RAM USAGE at %i%% of max|TOTAL=%iKB;;;; USED=%iKB;;;;" % (percent_usage, memory_limit, memory_used)
             sys.exit(2)
         elif percent_usage > warning:
-            print "WARNING - RABBITMQ RAM USAGE at %s%% of max" % percent_usage
+            print "WARNING - RABBITMQ RAM USAGE at %i%% of max|TOTAL=%iKB;;;; USED=%iKB;;;;" % (percent_usage, memory_limit, memory_used)
             sys.exit(1)
         else:
-            print "OK - RABBITMQ RAM USAGE OK at %s%% of max" % percent_usage
+            print "OK - RABBITMQ RAM USAGE at %i%% of max|TOTAL=%iKB;;;; USED=%iKB;;;;" % (percent_usage, memory_limit, memory_used)
             sys.exit(0)
+
     except Exception, err:
         print "Critical - %s" % err
         sys.exit(2)
