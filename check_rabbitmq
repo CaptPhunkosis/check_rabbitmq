@@ -3,7 +3,6 @@ from optparse import OptionParser
 import shlex
 import subprocess
 import sys
-import requests
 import json
 import re
 
@@ -134,52 +133,6 @@ def check_mem_usage(critical=75, warning=50):
     except Exception, err:
         print "Critical - %s" % err
         sys.exit(2)
-
-def check_aliveness(username, password, timeout, cluster):
-      """Declares a test queue, then publishes and consumes a message. Intended for use by monitoring tools. If everything is working correctly, will return HTTP status 200 with body"""
-      try:
-          r = requests.get("http://%s:15672/api/aliveness-test/%%2F" % cluster, auth=(username, password), timeout=timeout)
-      except requests.exceptions.RequestException as e: # Throw error if rabbitmq is down
-        print "Critical - %s" % e
-        sys.exit(2)
-      if r.status_code == 200:
-          print "OK - RABBITMQ Aliveness Test Returns: %s" % r
-          sys.exit(0)
-      elif r.status_code != 200:
-          print "CRITICAL - RabbitMQ Error: %s" % r.content
-          sys.exit(2)
-      else:
-          print "UNKNOWN - RABBITMQ Aliveness Test"
-          sys.ext(1)
-
-def check_cluster(username, password, timeout, cluster):
-    """Checks the health of a cluster, if a node is not running mark as offline  """
-    try:
-        url = "http://%s:15672/api/nodes" % cluster
-        r = requests.get(url, auth=(username, password), timeout=timeout)
-    except requests.exceptions.RequestException as e: # Throw error if no response
-        print "Critical - %s" % e
-        sys.exit(2)
-    text = r.text
-    nodes = json.loads(text)
-
-    running_nodes = []
-    failed_nodes = []
-    for node in nodes:
-        if not node['running']:
-            failed_nodes.append(node['name'])
-        if node['running']:
-            running_nodes.append(node['name'])
-    if len(failed_nodes) == 1:
-       print "WARNING: RabbitMQ cluster is degraged: Not running %s" % failed_nodes[0]
-       sys.exit(1)
-    elif len(failed_nodes) >= 2:
-       print "CRITICAL: RabbitMQ cluster is critical: Not running %s" % failed_nodes
-       sys.exit(2)
-    else:
-       print "OK: RabbitMQ cluster members: %s" % (" ".join(running_nodes))
-       sys.exit(0)
-
 
 USAGE = """Usage: ./check_rabbitmq -a [action] -C [critical] -W [warning]
            Actions:
