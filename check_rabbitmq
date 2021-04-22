@@ -31,21 +31,21 @@ class RabbitCmdWrapper(object):
 
     @classmethod
     def list_connections(cls):
-        args = shlex.split("sudo rabbitmqctl list_connections")
+        args = shlex.split("rabbitmqctl list_connections")
         cmd_result = subprocess.check_output(args).strip()
         results = cls._parse_list_results(cmd_result)
         return results
 
     @classmethod
     def list_queues(cls):
-        args = shlex.split('sudo rabbitmqctl list_queues -q')
+        args = shlex.split('rabbitmqctl list_queues -q')
         cmd_result = subprocess.check_output(args).strip()
         results = cls._parse_list_results(cmd_result)
         return results
 
     @classmethod
     def status(cls):
-        args = shlex.split('sudo rabbitmqctl status')
+        args = shlex.split('rabbitmqctl status')
         cmd_result = subprocess.check_output(args).strip()
         results = cls._parse_list_results(cmd_result)
         return results
