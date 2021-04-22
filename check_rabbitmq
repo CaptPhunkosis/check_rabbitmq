@@ -63,7 +63,9 @@ class RabbitCmdWrapper(object):
 
 
 def check_connection_count(critical=0, warning=0):
-    """Checks to make sure the numbers of connections are within parameters."""
+    """
+    Checks to make sure the numbers of connections are within parameters.
+    """
     try:
         count = len(RabbitCmdWrapper.list_connections())
         if count >= critical:
@@ -74,9 +76,10 @@ def check_connection_count(critical=0, warning=0):
             sys.exit(1)
         else:
             print("OK - Connection Count %d" % count)
-    except Exception, err:
-        print("CRITICAL - %s" % err)
-
+            sys.exit(0)
+    except Exception:
+        print("CRITICAL - Unknown Exception")
+        sys.exit(2)
 
 def check_queues_count(critical=1000, warning=1000):
     """
@@ -95,16 +98,16 @@ def check_queues_count(critical=1000, warning=1000):
                 elif count >= warning:
                     warning_q.append("%s: %s" % (queue[0], count))
         if critical_q:
-            print("CRITICAL - %s" % ", ".join(critical_q)
+            print("CRITICAL - %s" % ", ".join(critical_q))
             sys.exit(2)
         elif warning_q:
-            print("WARNING - %s" % ", ".join(warning_q)
+            print("WARNING - %s" % ", ".join(warning_q))
             sys.exit(1)
         else:
             print("OK - NO QUEUES EXCEED THRESHOLDS")
             sys.exit(0)
-    except Exception, err:
-        print("CRITICAL - %s" % err)
+    except Exception:
+        print("CRITICAL - Unknown Exception")
         sys.exit(2)
 
 def check_mem_usage(critical=75, warning=50):
@@ -122,17 +125,16 @@ def check_mem_usage(critical=75, warning=50):
         percent_usage = int(100 * memory_used / memory_limit)
 
         if percent_usage > critical:
-            print("CRITICAL - RABBITMQ RAM USAGE at %i%% of max|TOTAL=%iKB;;;; USED=%iKB;;;;" % (percent_usage, memory_limit, memory_used)
+            print("CRITICAL - RABBITMQ RAM USAGE at %i%% of max|TOTAL=%iKB;;;; USED=%iKB;;;;" % (percent_usage, memory_limit, memory_used))
             sys.exit(2)
         elif percent_usage > warning:
-            print("WARNING - RABBITMQ RAM USAGE at %i%% of max|TOTAL=%iKB;;;; USED=%iKB;;;;" % (percent_usage, memory_limit, memory_used)
+            print("WARNING - RABBITMQ RAM USAGE at %i%% of max|TOTAL=%iKB;;;; USED=%iKB;;;;" % (percent_usage, memory_limit, memory_used))
             sys.exit(1)
         else:
-            print("OK - RABBITMQ RAM USAGE at %i%% of max|TOTAL=%iKB;;;; USED=%iKB;;;;" % (percent_usage, memory_limit, memory_used)
+            print("OK - RABBITMQ RAM USAGE at %i%% of max|TOTAL=%iKB;;;; USED=%iKB;;;;" % (percent_usage, memory_limit, memory_used))
             sys.exit(0)
-
-    except Exception, err:
-        print("Critical - %s" % err)
+    except Exception:
+        print("CRITICAL - Unknown Exception")
         sys.exit(2)
 
 def check_aliveness(username, password, timeout, cluster):
