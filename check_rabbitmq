@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python2
 from optparse import OptionParser
 import shlex
 import subprocess
@@ -31,21 +31,21 @@ class RabbitCmdWrapper(object):
 
     @classmethod
     def list_connections(cls):
-        args = shlex.split("rabbitmqctl list_connections")
+        args = shlex.split("sudo /usr/sbin/rabbitmqctl list_connections")
         cmd_result = subprocess.check_output(args).strip()
         results = cls._parse_list_results(cmd_result)
         return results
 
     @classmethod
     def list_queues(cls):
-        args = shlex.split('rabbitmqctl list_queues -q')
+        args = shlex.split('sudo /usr/sbin/rabbitmqctl list_queues -q')
         cmd_result = subprocess.check_output(args).strip()
         results = cls._parse_list_results(cmd_result)
         return results
 
     @classmethod
     def status(cls):
-        args = shlex.split('rabbitmqctl status')
+        args = shlex.split('sudo /usr/sbin/rabbitmqctl status')
         cmd_result = subprocess.check_output(args).strip()
         results = cls._parse_list_results(cmd_result)
         return results
@@ -63,23 +63,20 @@ class RabbitCmdWrapper(object):
 
 
 def check_connection_count(critical=0, warning=0):
-    """
-    Checks to make sure the numbers of connections are within parameters.
-    """
+    """Checks to make sure the numbers of connections are within parameters."""
     try:
         count = len(RabbitCmdWrapper.list_connections())
         if count >= critical:
-            print("CRITICAL - Connection Count %d" % count)
+            print "CRITICAL - Connection Count %d" % count
             sys.exit(2)
         elif count >= warning:
-            print("WARNING - Connection Count %d" % count)
+            print "WARNING - Connection Count %d" % count
             sys.exit(1)
         else:
-            print("OK - Connection Count %d" % count)
-            sys.exit(0)
-    except Exception:
-        print("CRITICAL - Unknown Exception")
-        sys.exit(2)
+            print "OK - Connection Count %d" % count
+    except Exception, err:
+        print "CRITICAL - %s" % err
+
 
 def check_queues_count(critical=1000, warning=1000):
     """
@@ -98,16 +95,16 @@ def check_queues_count(critical=1000, warning=1000):
                 elif count >= warning:
                     warning_q.append("%s: %s" % (queue[0], count))
         if critical_q:
-            print("CRITICAL - %s" % ", ".join(critical_q))
+            print "CRITICAL - %s" % ", ".join(critical_q)
             sys.exit(2)
         elif warning_q:
-            print("WARNING - %s" % ", ".join(warning_q))
+            print "WARNING - %s" % ", ".join(warning_q)
             sys.exit(1)
         else:
-            print("OK - NO QUEUES EXCEED THRESHOLDS")
+            print "OK - NO QUEUES EXCEED THRESHOLDS"
             sys.exit(0)
-    except Exception:
-        print("CRITICAL - Unknown Exception")
+    except Exception, err:
+        print "CRITICAL - %s" % err
         sys.exit(2)
 
 def check_mem_usage(critical=75, warning=50):
@@ -125,16 +122,17 @@ def check_mem_usage(critical=75, warning=50):
         percent_usage = int(100 * memory_used / memory_limit)
 
         if percent_usage > critical:
-            print("CRITICAL - RABBITMQ RAM USAGE at %i%% of max|TOTAL=%iKB;;;; USED=%iKB;;;;" % (percent_usage, memory_limit, memory_used))
+            print "CRITICAL - RABBITMQ RAM USAGE at %i%% of max|TOTAL=%iKB;;;; USED=%iKB;;;;" % (percent_usage, memory_limit, memory_used)
             sys.exit(2)
         elif percent_usage > warning:
-            print("WARNING - RABBITMQ RAM USAGE at %i%% of max|TOTAL=%iKB;;;; USED=%iKB;;;;" % (percent_usage, memory_limit, memory_used))
+            print "WARNING - RABBITMQ RAM USAGE at %i%% of max|TOTAL=%iKB;;;; USED=%iKB;;;;" % (percent_usage, memory_limit, memory_used)
             sys.exit(1)
         else:
-            print("OK - RABBITMQ RAM USAGE at %i%% of max|TOTAL=%iKB;;;; USED=%iKB;;;;" % (percent_usage, memory_limit, memory_used))
+            print "OK - RABBITMQ RAM USAGE at %i%% of max|TOTAL=%iKB;;;; USED=%iKB;;;;" % (percent_usage, memory_limit, memory_used)
             sys.exit(0)
-    except Exception:
-        print("CRITICAL - Unknown Exception")
+
+    except Exception, err:
+        print "Critical - %s" % err
         sys.exit(2)
 
 def check_aliveness(username, password, timeout, cluster):
@@ -142,16 +140,16 @@ def check_aliveness(username, password, timeout, cluster):
       try:
           r = requests.get("http://%s:15672/api/aliveness-test/%%2F" % cluster, auth=(username, password), timeout=timeout)
       except requests.exceptions.RequestException as e: # Throw error if rabbitmq is down
-        print("Critical - %s" % e)
+        print "Critical - %s" % e
         sys.exit(2)
       if r.status_code == 200:
-          print("OK - RABBITMQ Aliveness Test Returns: %s" % r)
+          print "OK - RABBITMQ Aliveness Test Returns: %s" % r
           sys.exit(0)
       elif r.status_code != 200:
-          print("CRITICAL - RabbitMQ Error: %s" % r.content)
+          print "CRITICAL - RabbitMQ Error: %s" % r.content
           sys.exit(2)
       else:
-          print("UNKNOWN - RABBITMQ Aliveness Test")
+          print "UNKNOWN - RABBITMQ Aliveness Test"
           sys.ext(1)
 
 def check_cluster(username, password, timeout, cluster):
@@ -160,7 +158,7 @@ def check_cluster(username, password, timeout, cluster):
         url = "http://%s:15672/api/nodes" % cluster
         r = requests.get(url, auth=(username, password), timeout=timeout)
     except requests.exceptions.RequestException as e: # Throw error if no response
-        print("Critical - %s" % e)
+        print "Critical - %s" % e
         sys.exit(2)
     text = r.text
     nodes = json.loads(text)
@@ -173,13 +171,13 @@ def check_cluster(username, password, timeout, cluster):
         if node['running']:
             running_nodes.append(node['name'])
     if len(failed_nodes) == 1:
-       print("WARNING: RabbitMQ cluster is degraged: Not running %s" % failed_nodes[0])
+       print "WARNING: RabbitMQ cluster is degraged: Not running %s" % failed_nodes[0]
        sys.exit(1)
     elif len(failed_nodes) >= 2:
-       print("CRITICAL: RabbitMQ cluster is critical: Not running %s" % failed_nodes)
+       print "CRITICAL: RabbitMQ cluster is critical: Not running %s" % failed_nodes
        sys.exit(2)
     else:
-       print("OK: RabbitMQ cluster members: %s" % (" ".join(running_nodes)))
+       print "OK: RabbitMQ cluster members: %s" % (" ".join(running_nodes))
        sys.exit(0)
 
 
@@ -225,5 +223,5 @@ if __name__ == "__main__":
     elif options.action == "cluster_status":
         check_cluster(options.username, options.password, options.timeout, options.cluster)
     else:
-        print("Invalid action: %s" % options.action)
-        print(USAGE)
+        print "Invalid action: %s" % options.action
+        print USAGE
