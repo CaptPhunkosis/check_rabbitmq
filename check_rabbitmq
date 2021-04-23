@@ -55,6 +55,7 @@ class RabbitCmdWrapper(object):
         #remove text fluff
         if "Listing connections ..." in results: results.remove("Listing connections ...")
         if "Listing queues ..." in results: results.remove("Listing queues ...")
+        if "name\tmessages" in results: results.remove("name\tmessages")
         return_data = []
         for row in results:
             return_data.append(row.split('\t'))
@@ -109,6 +110,8 @@ def check_queues_count(critical=1000, warning=1000):
 def check_mem_usage(critical=75, warning=50):
     """Check to make sure the RAM usage of rabbitmq process does not exceed 50%% of its max"""
     try:
+        memory_limit = 0
+        memory_used = 0
         results = RabbitCmdWrapper.status()
         for line in results:
             rss = re.search(r'rss,([0-9]+)', str(line))
