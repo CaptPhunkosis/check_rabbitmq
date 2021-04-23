@@ -66,10 +66,10 @@ def check_connection_count(critical=0, warning=0):
     """Checks to make sure the numbers of connections are within parameters."""
     try:
         count = len(RabbitCmdWrapper.list_connections())
-        if count >= critical:
+        if count <= critical:
             print "CRITICAL - Connection Count %d" % count
             sys.exit(2)
-        elif count >= warning:
+        elif count <= warning:
             print "WARNING - Connection Count %d" % count
             sys.exit(1)
         else:
