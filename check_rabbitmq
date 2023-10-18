@@ -78,7 +78,7 @@ def check_connection_count(critical=0, warning=0):
         print "CRITICAL - %s" % err
 
 
-def check_queues_count(critical=1000, warning=1000):
+def check_queues_count(critical=1000, warning=1000, queuename=None):
     """
     A blanket check to make sure all queues are within count parameters.
     TODO: Possibly break this out so test can be done on individual queues.
@@ -88,7 +88,7 @@ def check_queues_count(critical=1000, warning=1000):
         warning_q = []
         results = RabbitCmdWrapper.list_queues()
         for queue in results:
-           if len(queue) == 2:
+           if (queuename and queue[0] == queuename) or (queuename is None and len(queue) == 2):
                 count = int(queue[1])
                 if count >= critical:
                     critical_q.append("%s: %s" % (queue[0], count))
@@ -166,12 +166,14 @@ if __name__ == "__main__":
                       type="int", help="Request Timeout, defaults to 1 second")
     parser.add_option("-c", "--cluster", dest="cluster", default="localhost",
                       type="string", help="Cluster IP/DNS name, defaults to localhost")
+    parser.add_option("-q", "--queuename", dest="queuename", default="foo",
+                      type="string", help="The name of the queue to target for queues_count")
     (options, args) = parser.parse_args()
 
     if options.action == "connection_count":
         check_connection_count(options.critical, options.warning)
     elif options.action == "queues_count":
-        check_queues_count(options.critical, options.warning)
+        check_queues_count(options.critical, options.warning, options.queuename)
     elif options.action == "mem_usage":
         check_mem_usage(options.critical, options.warning)
     elif options.action == "aliveness":
