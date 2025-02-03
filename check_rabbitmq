@@ -61,19 +61,27 @@ class RabbitCmdWrapper(object):
             return_data.append(row.split('\t'))
         return return_data
 
+def threshold_sanity(critical, warning):
+    """Make sure we use both thresholds, not just one"""
+    if warning and not critical:
+        print("UNKNOWN - Define both thresholds, not just warning")
+        sys.exit(3)
+    elif critical and not warning:
+        print("UNKNOWN - Define both thresholds, not just critical")
 
 def check_connection_count(critical=0, warning=0):
     """Checks to make sure the numbers of connections are within parameters."""
     try:
         count = len(RabbitCmdWrapper.list_connections())
-        if count >= critical:
-            print("CRITICAL - Connection Count %d" % count)
-            sys.exit(2)
-        elif count >= warning:
-            print("WARNING - Connection Count %d" % count)
-            sys.exit(1)
-        else:
-            print("OK - Connection Count %d" % count)
+        if (critical and warning):
+          if count >= critical:
+              print("CRITICAL - Connection Count {0}|connections={0};{1};{2};0;;" .format(count,warning,critical))
+              sys.exit(2)
+          elif count >= warning:
+              print("WARNING - Connection Count {0}|connections={0};{1};{2};0;;" .format(count,warning,critical))
+              sys.exit(1)
+          else:
+              print("OK - Connection Count {0}|connections={0};;;0;;" .format(count))
     except Exception as err:
         print("CRITICAL - %s" % err)
 
@@ -184,7 +192,7 @@ def check_cluster(username, password, timeout, cluster):
         sys.exit(0)
 
 
-USAGE = """Usage: ./check_rabbitmq -a [action] -C [critical] -W [warning]
+USAGE = """Usage: ./check_rabbitmq -a action [-C critical] [-W warning]
            Actions:
            - connection_count
              checks the number of connection in rabbitmq's list_connections
@@ -216,6 +224,7 @@ if __name__ == "__main__":
     (options, args) = parser.parse_args()
 
     if options.action == "connection_count":
+        threshold_sanity(options.critical, options.warning)
         check_connection_count(options.critical, options.warning)
     elif options.action == "queues_count":
         check_queues_count(options.critical, options.warning)
